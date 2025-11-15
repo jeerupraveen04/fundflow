@@ -1,7 +1,8 @@
 # FundFlow Database Schema
 
 **Last Updated:** November 15, 2025  
-**Database Provider:** Firebase (Firestore & Authentication)  
+**Database Provider:** PostgreSQL  
+**Authentication:** Supabase Auth or JWT  
 **Environment:** Development & Production
 
 ---
@@ -19,404 +20,294 @@
 
 ## Overview
 
-FundFlow uses **Firebase Firestore** as its primary database. Firestore is a NoSQL cloud database that stores data in collections and documents.
+FundFlow uses PostgreSQL as its primary database. PostgreSQL is a relational SQL database that stores data in tables and rows. The project can use Supabase (managed Postgres + Auth + realtime) or any standard Postgres deployment. Authentication is handled via Supabase Auth or JWT-based tokens.
 
 ### Database Structure
-- **Database Type:** NoSQL (Document-based)
-- **Provider:** Google Cloud Firestore
-- **Authentication:** Firebase Authentication
-- **Real-time Capabilities:** Firestore listeners
-- **Scalability:** Serverless auto-scaling
+- **Database Type:** Relational (SQL)
+- **Provider:** PostgreSQL (self-hosted or Supabase)
+- **Authentication:** Supabase Auth or JWT-based authentication
+- **Real-time Capabilities:** Optional (Supabase Realtime, websockets, or pub/sub)
+- **Scalability:** Managed or self-hosted scaling strategies (read replicas, connection pooling)
 
 ---
 
-## Collections & Documents
+## Tables & Schemas
 
-### 1. **Users Collection**
+Below are recommended Postgres table definitions (DDL) and notes that map the previous Firestore collections to relational tables. These are suggested schemas — adjust types, constraints, and indexes to match your application needs.
+
+### 1. users
 Stores all user account information and profiles.
 
-**Collection Path:** `/users`
+DDL (Postgres):
+```sql
+CREATE TABLE users (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  email text NOT NULL UNIQUE,
+  display_name text NOT NULL,
+  first_name text,
+  last_name text,
+  avatar_url text,
+  bio text,
+  role text NOT NULL DEFAULT 'user', -- enum: user, creator, admin, superadmin
+  is_verified boolean NOT NULL DEFAULT false,
+  phone_number text,
+  social_links jsonb,
+  account_status text NOT NULL DEFAULT 'active', -- enum: active, inactive, suspended
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  last_login_at timestamptz,
+  preferences jsonb
+);
 
-#### Document Structure:
-```typescript
-{
-  userId: string;                    // Document ID (Firebase Auth UID)
-  email: string;                     // User's email address (unique)
-  displayName: string;               // User's display name
-  firstName?: string;                // User's first name
-  lastName?: string;                 // User's last name
-  avatarUrl?: string;                // Profile picture URL
-  bio?: string;                      // User biography
-  role: "user" | "creator" | "admin" | "superadmin";  // User role
-  isVerified: boolean;               // Email verification status
-  phoneNumber?: string;              // Contact number
-  socialLinks?: {
-    twitter?: string;
-    linkedin?: string;
-    github?: string;
-    website?: string;
-  };
-  accountStatus: "active" | "inactive" | "suspended"; // Account status
-  createdAt: Timestamp;              // Account creation date
-  updatedAt: Timestamp;              // Last profile update
-  lastLoginAt?: Timestamp;           // Last login timestamp
-  preferences?: {
-    emailNotifications: boolean;
-    pushNotifications: boolean;
-    theme: "light" | "dark";
-  };
-}
+CREATE INDEX idx_users_role ON users (role);
+CREATE INDEX idx_users_created_at ON users (created_at);
 ```
 
-#### Indexes:
-- Primary: `userId` (Document ID)
-- Secondary: `email` (Unique, for login)
-- Secondary: `role` (for role-based queries)
-- Secondary: `createdAt` (for sorting)
+Notes:
+- Use Supabase Auth (which manages its own users table) or map auth UIDs to this `users.id` column.
+- `social_links` and `preferences` are stored as JSONB for flexibility.
 
 ---
 
-### 2. **Campaigns Collection**
+### 2. campaigns
 Stores all crowdfunding campaign information.
 
-**Collection Path:** `/campaigns`
+DDL:
+```sql
+CREATE TABLE campaigns (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  slug text UNIQUE,
+  description text NOT NULL,
+  short_description text,
+  category_id text NOT NULL,
+  creator_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  creator_name text,
+  creator_avatar_url text,
+  funding_goal numeric(12,2) NOT NULL,
+  current_amount numeric(12,2) NOT NULL DEFAULT 0,
+  currency text NOT NULL DEFAULT 'USD',
+  image_url text,
+  images jsonb,
+  video_url text,
+  start_date timestamptz,
+  end_date timestamptz,
+  status text NOT NULL DEFAULT 'draft', -- enum
+  is_approved boolean NOT NULL DEFAULT false,
+  approved_by uuid,
+  approved_at timestamptz,
+  total_donors integer NOT NULL DEFAULT 0,
+  donation_count integer NOT NULL DEFAULT 0,
+  view_count integer NOT NULL DEFAULT 0,
+  updates_count integer NOT NULL DEFAULT 0,
+  comments_count integer NOT NULL DEFAULT 0,
+  metadata jsonb,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
 
-#### Document Structure:
-```typescript
-{
-  campaignId: string;                // Document ID (auto-generated or custom)
-  title: string;                     // Campaign title
-  slug?: string;                     // URL-friendly slug
-  description: string;               // Detailed campaign description
-  shortDescription?: string;         // Brief campaign summary (max 160 chars)
-  category: string;                  // Campaign category
-                                     // Options: "Community", "Arts", "Animals", 
-                                     //          "Technology", "Film", "Education"
-  creatorId: string;                 // Reference to Users.userId
-  creatorName: string;               // Creator's display name (denormalized)
-  creatorAvatarUrl?: string;         // Creator's avatar (denormalized)
-  
-  // Funding Information
-  fundingGoal: number;               // Target amount in USD
-  currentAmount: number;             // Amount raised so far
-  currency: string;                  // Currency code (default: "USD")
-  
-  // Campaign Media
-  imageUrl?: string;                 // Primary campaign image
-  images?: string[];                 // Additional campaign images
-  videoUrl?: string;                 // Campaign video URL
-  
-  // Timeline
-  startDate: Timestamp;              // Campaign launch date
-  endDate: Timestamp;                // Campaign deadline
-  
-  // Status
-  status: "draft" | "pending_review" | "active" | "completed" | "cancelled" | "suspended";
-  isApproved: boolean;               // Admin approval status
-  approvedBy?: string;               // Admin ID who approved
-  approvedAt?: Timestamp;            // Approval timestamp
-  
-  // Engagement
-  totalDonors: number;               // Count of unique donors
-  donationCount: number;             // Total number of donations
-  viewCount: number;                 // Campaign page views
-  
-  // Additional Info
-  updatesCount: number;              // Number of campaign updates/posts
-  commentsCount: number;             // Number of comments
-  
-  metadata?: {
-    location?: string;               // Geographic location
-    tags?: string[];                 // Campaign tags
-    website?: string;                // External website link
-  };
-  
-  createdAt: Timestamp;              // Campaign creation date
-  updatedAt: Timestamp;              // Last update date
-}
+CREATE INDEX idx_campaigns_creator ON campaigns (creator_id);
+CREATE INDEX idx_campaigns_category_status ON campaigns (category_id, status);
+CREATE INDEX idx_campaigns_status_startdate ON campaigns (status, start_date DESC);
 ```
 
-#### Indexes:
-- Primary: `campaignId` (Document ID)
-- Secondary: `creatorId` (for creator's campaigns)
-- Secondary: `category` (for filtering)
-- Secondary: `status` (for active campaigns)
-- Secondary: `startDate` (for chronological sorting)
-- Composite: `status` + `startDate` (for active campaigns sorted by date)
-- Composite: `category` + `status` (for filtered browsing)
+Notes:
+- `images` and `metadata` are JSONB for multiple images/tags.
 
 ---
 
-### 3. **Donations Collection**
+### 3. donations
 Records all donations made to campaigns.
 
-**Collection Path:** `/donations`
+DDL:
+```sql
+CREATE TABLE donations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  campaign_id uuid NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+  donor_id uuid REFERENCES users(id),
+  amount numeric(12,2) NOT NULL,
+  currency text NOT NULL DEFAULT 'USD',
+  status text NOT NULL DEFAULT 'pending', -- pending|completed|failed|refunded
+  payment_method text,
+  transaction_id text,
+  receipt_url text,
+  donor_name text,
+  donor_email text,
+  is_anonymous boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  completed_at timestamptz,
+  refunded_at timestamptz,
+  message text,
+  reward_tier text,
+  metadata jsonb
+);
 
-#### Document Structure:
-```typescript
-{
-  donationId: string;                // Document ID (auto-generated UUID)
-  campaignId: string;                // Reference to Campaigns.campaignId
-  donorId: string;                   // Reference to Users.userId
-  
-  // Donation Details
-  amount: number;                    // Donation amount in USD
-  currency: string;                  // Currency code (default: "USD")
-  status: "pending" | "completed" | "failed" | "refunded";  // Payment status
-  
-  // Payment Information
-  paymentMethod?: string;            // "stripe" | "paypal" | "bank_transfer"
-  transactionId?: string;            // Payment processor transaction ID
-  receiptUrl?: string;               // Payment receipt URL
-  
-  // Donor Information
-  donorName: string;                 // Donor's display name (denormalized)
-  donorEmail: string;                // Donor's email (denormalized)
-  isAnonymous: boolean;              // Whether donation is anonymous
-  
-  // Timestamps
-  createdAt: Timestamp;              // Donation date
-  completedAt?: Timestamp;           // Payment completion date
-  refundedAt?: Timestamp;            // Refund date (if applicable)
-  
-  // Additional
-  message?: string;                  // Optional donor message
-  rewardTier?: string;               // Associated reward tier (future)
-  metadata?: {
-    ipAddress?: string;              // Donor IP (for analytics)
-    source?: string;                 // Traffic source
-  };
-}
+CREATE INDEX idx_donations_campaign_status ON donations (campaign_id, status);
+CREATE INDEX idx_donations_donor_created ON donations (donor_id, created_at DESC);
 ```
-
-#### Indexes:
-- Primary: `donationId` (Document ID)
-- Secondary: `campaignId` (for campaign donations)
-- Secondary: `donorId` (for donor history)
-- Secondary: `status` (for payment reconciliation)
-- Secondary: `createdAt` (for sorting donations)
-- Composite: `campaignId` + `status` (for campaign revenue)
-- Composite: `donorId` + `createdAt` (for donor donation history)
 
 ---
 
-### 4. **Campaign Updates Collection**
-Stores campaign updates and announcements (future feature).
+### 4. campaign_updates
+Campaign updates and announcements.
 
-**Collection Path:** `/campaigns/{campaignId}/updates`
+DDL:
+```sql
+CREATE TABLE campaign_updates (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  campaign_id uuid NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+  author_id uuid REFERENCES users(id),
+  title text NOT NULL,
+  content text NOT NULL,
+  image_url text,
+  like_count integer NOT NULL DEFAULT 0,
+  comment_count integer NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz
+);
 
-#### Document Structure:
-```typescript
-{
-  updateId: string;                  // Document ID
-  campaignId: string;                // Parent campaign ID
-  authorId: string;                  // Reference to Users.userId
-  
-  title: string;                     // Update title
-  content: string;                   // Update content (markdown)
-  imageUrl?: string;                 // Update image/thumbnail
-  
-  // Engagement
-  likeCount: number;                 // Number of likes
-  commentCount: number;              // Number of comments
-  
-  createdAt: Timestamp;              // Post date
-  updatedAt?: Timestamp;             // Last edit date
-}
+CREATE INDEX idx_updates_campaign_created ON campaign_updates (campaign_id, created_at DESC);
 ```
-
-#### Indexes:
-- Primary: `updateId` (Document ID)
-- Secondary: `campaignId` (Parent reference)
-- Secondary: `createdAt` (for chronological sorting)
 
 ---
 
-### 5. **Campaign Comments Collection**
-Stores comments on campaigns (future feature).
+### 5. campaign_comments
+Comments on campaigns.
 
-**Collection Path:** `/campaigns/{campaignId}/comments`
+DDL:
+```sql
+CREATE TABLE campaign_comments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  campaign_id uuid NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+  author_id uuid REFERENCES users(id),
+  author_name text,
+  author_avatar_url text,
+  content text NOT NULL,
+  like_count integer NOT NULL DEFAULT 0,
+  reply_count integer NOT NULL DEFAULT 0,
+  is_edited boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz
+);
 
-#### Document Structure:
-```typescript
-{
-  commentId: string;                 // Document ID
-  campaignId: string;                // Parent campaign ID
-  authorId: string;                  // Reference to Users.userId
-  authorName: string;                // Author display name (denormalized)
-  authorAvatarUrl?: string;          // Author avatar (denormalized)
-  
-  content: string;                   // Comment text
-  
-  // Engagement
-  likeCount: number;                 // Number of likes
-  replyCount: number;                // Number of replies
-  
-  // Metadata
-  isEdited: boolean;                 // Whether comment was edited
-  createdAt: Timestamp;              // Comment date
-  updatedAt?: Timestamp;             // Last edit date
-}
+CREATE INDEX idx_comments_campaign_created ON campaign_comments (campaign_id, created_at DESC);
 ```
-
-#### Indexes:
-- Primary: `commentId` (Document ID)
-- Secondary: `campaignId` (Parent reference)
-- Secondary: `authorId` (for user's comments)
-- Secondary: `createdAt` (for sorting)
 
 ---
 
-### 6. **Categories Collection**
+### 6. categories
 Reference data for campaign categories.
 
-**Collection Path:** `/categories`
+DDL:
+```sql
+CREATE TABLE categories (
+  id text PRIMARY KEY,
+  name text NOT NULL,
+  slug text NOT NULL UNIQUE,
+  description text,
+  icon text,
+  color text,
+  is_active boolean NOT NULL DEFAULT true,
+  display_order integer NOT NULL DEFAULT 0,
+  campaign_count integer NOT NULL DEFAULT 0,
+  total_funded numeric(14,2) NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
 
-#### Document Structure:
-```typescript
-{
-  categoryId: string;                // Document ID (category slug)
-  name: string;                      // Display name
-  slug: string;                      // URL slug
-  description?: string;              // Category description
-  icon?: string;                     // Icon/emoji
-  color?: string;                    // Hex color code
-  isActive: boolean;                 // Whether category is available
-  displayOrder: number;              // Sort order
-  campaignCount: number;             // Count of campaigns (denormalized)
-  totalFunded?: number;              // Total amount funded (denormalized)
-  
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-}
+CREATE INDEX idx_categories_active_order ON categories (is_active, display_order);
 ```
-
-#### Indexes:
-- Primary: `categoryId` (Document ID)
-- Secondary: `isActive` (for available categories)
-- Secondary: `displayOrder` (for sorting)
 
 ---
 
-### 7. **Admin Logs Collection**
+### 7. admin_logs
 Audit trail for administrative actions.
 
-**Collection Path:** `/adminLogs`
+DDL:
+```sql
+CREATE TABLE admin_logs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  admin_id uuid REFERENCES users(id),
+  admin_email text,
+  action text NOT NULL,
+  target_type text,
+  target_id text,
+  details jsonb,
+  changes jsonb,
+  reason text,
+  ip_address text,
+  user_agent text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
 
-#### Document Structure:
-```typescript
-{
-  logId: string;                     // Document ID (auto-generated)
-  adminId: string;                   // Reference to Users.userId
-  adminEmail: string;                // Admin email (denormalized)
-  
-  action: string;                    // Action performed
-                                     // Examples: "approve_campaign", 
-                                     //          "reject_campaign", 
-                                     //          "suspend_user", etc.
-  
-  targetType: string;                // "campaign" | "user" | "donation"
-  targetId: string;                  // ID of affected resource
-  
-  details?: object;                  // Additional action details
-  changes?: object;                  // What was changed
-  reason?: string;                   // Why action was taken
-  
-  ipAddress?: string;                // Admin's IP address
-  userAgent?: string;                // Admin's browser info
-  
-  createdAt: Timestamp;              // Action timestamp
-}
+CREATE INDEX idx_adminlogs_admin ON admin_logs (admin_id);
+CREATE INDEX idx_adminlogs_action ON admin_logs (action);
 ```
-
-#### Indexes:
-- Primary: `logId` (Document ID)
-- Secondary: `adminId` (for admin's actions)
-- Secondary: `action` (for audit reports)
-- Secondary: `targetType` (for filtering)
-- Secondary: `createdAt` (for chronological audit)
 
 ---
 
-### 8. **Platform Settings Collection**
+### 8. settings
 Global platform configuration.
 
-**Collection Path:** `/settings`
-
-#### Document Structure:
-```typescript
-{
-  settingId: string;                 // Document ID (e.g., "general", "payment")
-  
-  // General Settings
-  platformName: string;              // "FundFlow"
-  platformDescription?: string;
-  
-  // Financial Settings
-  platformFeePercentage: number;     // Platform fee as percentage (e.g., 2.5)
-  minimumDonation: number;           // Minimum donation amount
-  maximumDonation?: number;          // Maximum donation amount
-  
-  // Feature Flags
-  features: {
-    campaignCreation: boolean;
-    donations: boolean;
-    comments: boolean;
-    updates: boolean;
-    rewards: boolean;
-  };
-  
-  // Payment Providers
-  paymentProviders: {
-    stripe: { enabled: boolean; apiKeyPublic?: string };
-    paypal: { enabled: boolean; clientId?: string };
-  };
-  
-  // Notification Settings
-  notifications: {
-    emailOnDonation: boolean;
-    emailOnUpdate: boolean;
-    emailOnComment: boolean;
-  };
-  
-  updatedAt: Timestamp;
-  updatedBy: string;                 // Admin ID
-}
+DDL:
+```sql
+CREATE TABLE settings (
+  id text PRIMARY KEY,
+  platform_name text,
+  platform_description text,
+  platform_fee_percentage numeric(5,2),
+  minimum_donation numeric(12,2),
+  maximum_donation numeric(12,2),
+  features jsonb,
+  payment_providers jsonb,
+  notifications jsonb,
+  updated_at timestamptz DEFAULT now(),
+  updated_by uuid
+);
 ```
+
+---
 
 #### Indexes:
 - Primary: `settingId` (Document ID)
 
 ---
 
+
 ## Data Types & Constraints
 
-### Firestore Data Types
+### PostgreSQL Data Types (mapping)
 
-| Type | Description | Example |
-|------|-------------|---------|
-| String | Text data | `"Help Build Our Community Garden"` |
-| Number | Integer or floating-point | `5000`, `99.99` |
-| Boolean | True/False | `true` |
-| Timestamp | Date/Time (UTC) | `Timestamp.fromDate(new Date())` |
-| Array | Ordered list | `["tag1", "tag2"]` |
-| Map | Object/Dictionary | `{ twitter: "@username" }` |
-| Reference | Link to another document | `db.collection("users").doc(uid)` |
-| GeoPoint | Geographic coordinates | `new GeoPoint(latitude, longitude)` |
+| Logical Type | Postgres Type | Example |
+|--------------|---------------|---------|
+| String / Text | text | `\'Help Build Our Community Garden\'` |
+| Integer / Small | integer, bigint | `5000` |
+| Decimal / Money | numeric(12,2) | `99.99` |
+| Boolean | boolean | `true` |
+| Timestamp | timestamptz | `now()` |
+| Array / List | jsonb | `['tag1','tag2']` stored as JSONB |
+| Map / Object | jsonb | `{"twitter": "@username"}` |
+| Reference / FK | uuid / foreign key | `REFERENCES users(id)` |
+| GeoPoint | point / PostGIS (geometry) | `POINT(lon lat)` or PostGIS geometry |
 
-### Field Constraints
+Notes:
+- Prefer `jsonb` for flexible nested data (images array, metadata, social links).
+- Use `uuid` for primary keys or leverage Supabase auth UIDs (text/uuid) depending on your auth setup.
 
-| Field | Type | Required | Constraints |
-|-------|------|----------|-------------|
-| **Campaign Title** | String | ✅ | Min 5 chars, Max 200 chars |
-| **Campaign Description** | String | ✅ | Min 20 chars, Max 5000 chars |
-| **Funding Goal** | Number | ✅ | > 0, ≤ 1,000,000 |
-| **Current Amount** | Number | ✅ | ≥ 0, ≤ funding goal |
-| **Email** | String | ✅ | Valid email format (RFC 5322) |
-| **Donation Amount** | Number | ✅ | ≥ 1, ≤ 100,000 |
-| **User Role** | String | ✅ | One of: user, creator, admin, superadmin |
-| **Campaign Status** | String | ✅ | One of: draft, pending_review, active, completed, cancelled, suspended |
-| **Donation Status** | String | ✅ | One of: pending, completed, failed, refunded |
+### Field Constraints (examples)
+
+| Field | SQL Type | Required | Constraint |
+|-------|----------|----------|------------|
+| campaign.title | text | NOT NULL | CHECK (char_length(title) >= 5 AND char_length(title) <= 200)
+| campaign.description | text | NOT NULL | CHECK (char_length(description) >= 20 AND char_length(description) <= 5000)
+| campaign.funding_goal | numeric(12,2) | NOT NULL | CHECK (funding_goal > 0 AND funding_goal <= 1000000)
+| campaign.current_amount | numeric(12,2) | NOT NULL DEFAULT 0 | CHECK (current_amount >= 0 AND current_amount <= funding_goal)
+| users.email | text | NOT NULL UNIQUE | (use application-level or DB constraints + email validation)
+| donation.amount | numeric(12,2) | NOT NULL | CHECK (amount >= 1 AND amount <= 100000)
+| users.role | text | NOT NULL DEFAULT 'user' | (enforce with CHECK or a Postgres enum)
+| campaigns.status | text | NOT NULL DEFAULT 'draft' | (use CHECK or enum for allowed statuses)
+| donations.status | text | NOT NULL DEFAULT 'pending' | (use CHECK or enum)
+
 
 ---
 
@@ -506,195 +397,121 @@ Aggregation: SUM(amount)
 
 ---
 
-## Security Rules
+## Security (Supabase / Postgres)
 
-### Firestore Security Rules
+When using Supabase or another Postgres + JWT provider, use Row Level Security (RLS) policies to control access. Below are example policies to get started. Adjust policies to your exact column names and role claims.
 
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    
-    // Helper function to check user authentication
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-    
-    // Helper function to check if user is admin
-    function isAdmin() {
-      return isAuthenticated() && 
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'superadmin'];
-    }
-    
-    // Helper function to check if user is super admin
-    function isSuperAdmin() {
-      return isAuthenticated() && 
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superadmin';
-    }
-    
-    // Users Collection
-    match /users/{userId} {
-      // Users can read their own profile
-      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
-      
-      // Users can update their own profile
-      allow update: if isAuthenticated() && request.auth.uid == userId;
-      
-      // Only super admin can update user roles
-      allow update: if isSuperAdmin() && request.resource.data.role is string;
-      
-      // New user registration
-      allow create: if request.auth.uid == userId;
-    }
-    
-    // Campaigns Collection
-    match /campaigns/{campaignId} {
-      // Anyone can read active campaigns
-      allow read: if resource.data.status == 'active' || isAdmin();
-      
-      // Creators can create campaigns
-      allow create: if isAuthenticated() && 
-                       request.resource.data.creatorId == request.auth.uid &&
-                       request.resource.data.status == 'draft';
-      
-      // Creators can update their own campaigns
-      allow update: if isAuthenticated() && 
-                       resource.data.creatorId == request.auth.uid;
-      
-      // Only admins can approve campaigns
-      allow update: if isAdmin() && 
-                       request.resource.data.status in ['active', 'suspended'];
-      
-      // Subcollections
-      match /updates/{updateId} {
-        allow read: if parent().data.status == 'active' || isAdmin();
-        allow create: if isAuthenticated() && 
-                         request.auth.uid == parent().data.creatorId;
-      }
-      
-      match /comments/{commentId} {
-        allow read: if parent().data.status == 'active' || isAdmin();
-        allow create: if isAuthenticated();
-      }
-    }
-    
-    // Donations Collection
-    match /donations/{donationId} {
-      // Users can read their own donations
-      allow read: if isAuthenticated() && 
-                     (request.auth.uid == resource.data.donorId || isAdmin());
-      
-      // Create donation records after successful payment
-      allow create: if isAuthenticated() && 
-                       request.auth.uid == request.resource.data.donorId;
-      
-      // Only admins can refund donations
-      allow update: if isAdmin() && 
-                       request.resource.data.status == 'refunded';
-    }
-    
-    // Admin Logs (admin only)
-    match /adminLogs/{logId} {
-      allow read: if isAdmin();
-      allow create: if isAdmin();
-    }
-    
-    // Settings (admin only)
-    match /settings/{settingId} {
-      allow read: if isAdmin();
-      allow write: if isSuperAdmin();
-    }
-    
-    // Categories (public read)
-    match /categories/{categoryId} {
-      allow read: if true;
-      allow write: if isSuperAdmin();
-    }
-  }
-}
+Example: enable RLS on a table and create basic policies
+
+```sql
+-- Enable RLS
+ALTER TABLE campaigns ENABLE ROW LEVEL SECURITY;
+
+-- Policy: allow public read of active campaigns
+CREATE POLICY "public_read_active_campaigns" ON campaigns
+  FOR SELECT
+  USING (status = 'active');
+
+-- Policy: creators can insert campaigns (auth.uid stored in creator_id)
+CREATE POLICY "creators_insert_own" ON campaigns
+  FOR INSERT
+  WITH CHECK (creator_id = auth.uid());
+
+-- Policy: creators can update their own campaigns
+CREATE POLICY "creators_update_own" ON campaigns
+  FOR UPDATE
+  USING (creator_id = auth.uid());
+
+-- Policy: admins (a role claim) can update status and approve
+CREATE POLICY "admins_manage_campaigns" ON campaigns
+  FOR UPDATE
+  USING (auth.role() IN ('admin','superadmin'))
+  WITH CHECK (true);
 ```
+
+Notes:
+- Supabase exposes helper functions: `auth.uid()` for the current user UUID and `auth.role()` for role claims if you set them in JWT.
+- Use `WITH CHECK` to ensure inserted/updated rows meet invariants.
+- Protect sensitive tables like `admin_logs` so only admins can insert/select.
+
+Example policy for donations (users can create a donation row for themselves; donors can see their donations):
+
+```sql
+ALTER TABLE donations ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "donations_insert_own" ON donations
+  FOR INSERT
+  WITH CHECK (donor_id = auth.uid());
+
+CREATE POLICY "donations_select_owner_or_admin" ON donations
+  FOR SELECT
+  USING (donor_id = auth.uid() OR auth.role() IN ('admin','superadmin'));
+```
+
+For Supabase-specific setup, see: https://supabase.com/docs/guides/auth
 
 ---
 
 ## Migration & Setup
 
-### Initial Database Setup
 
-#### Step 1: Create Collections
-```javascript
-// Initialize empty collections
-const collections = [
-  'users',
-  'campaigns',
-  'donations',
-  'categories',
-  'adminLogs',
-  'settings'
-];
+### Initial Database Setup (Postgres / Supabase)
 
-collections.forEach(collection => {
-  db.collection(collection).doc('__init__').set({
-    initialized: true,
-    timestamp: firebase.firestore.Timestamp.now()
-  });
-});
+Below are example SQL DDL and seed steps for Postgres. If using Supabase, you can run these via the SQL editor or `supabase` CLI.
+
+#### Step 1: Create Tables (DDL)
+
+Run the DDL statements shown in the "Tables & Schemas" section above. Example using psql:
+
+```bash
+psql $DATABASE_URL -f db/schema.sql
 ```
 
 #### Step 2: Seed Categories
-```javascript
-const categories = [
-  {
-    categoryId: 'community',
-    name: 'Community',
-    slug: 'community',
-    description: 'Community and social causes',
-    displayOrder: 1,
-    isActive: true
-  },
-  {
-    categoryId: 'arts',
-    name: 'Arts',
-    slug: 'arts',
-    description: 'Arts and creative projects',
-    displayOrder: 2,
-    isActive: true
-  },
-  // ... more categories
-];
 
-categories.forEach(cat => {
-  db.collection('categories').doc(cat.categoryId).set(cat);
-});
+Example SQL seed:
+
+```sql
+INSERT INTO categories (id, name, slug, description, display_order, is_active)
+VALUES
+  ('community', 'Community', 'community', 'Community and social causes', 1, true),
+  ('arts', 'Arts', 'arts', 'Arts and creative projects', 2, true);
 ```
 
+You can run this via psql or the Supabase SQL editor.
+
 #### Step 3: Initialize Settings
-```javascript
-db.collection('settings').doc('general').set({
-  platformName: 'FundFlow',
-  platformFeePercentage: 2.5,
-  minimumDonation: 1,
-  features: {
-    campaignCreation: true,
-    donations: true,
-    comments: false,
-    updates: false,
-    rewards: false
-  },
-  updatedAt: firebase.firestore.Timestamp.now()
-});
+
+```sql
+INSERT INTO settings (id, platform_name, platform_fee_percentage, minimum_donation, features, updated_at)
+VALUES (
+  'general',
+  'FundFlow',
+  2.5,
+  1.00,
+  '{"campaignCreation": true, "donations": true, "comments": false, "updates": false, "rewards": false}',
+  now()
+);
 ```
 
 ### Backup & Recovery
 
-#### Firestore Export
+#### Postgres dump (pg_dump)
+
 ```bash
-gcloud firestore export gs://your-bucket/backups/$(date +%Y%m%d)
+pg_dump --format=custom --file=backups/fundflow-$(date +%Y%m%d).dump $DATABASE_URL
 ```
 
-#### Firestore Import
+#### Restore (pg_restore)
+
 ```bash
-gcloud firestore import gs://your-bucket/backups/20250115/
+pg_restore --verbose --clean --no-owner --dbname=$DATABASE_URL backups/fundflow-20250115.dump
 ```
+
+#### Supabase import/export
+
+Use the Supabase UI or `supabase db dump` / `supabase db restore` commands (see Supabase docs) to manage project snapshots.
+
 
 ---
 
