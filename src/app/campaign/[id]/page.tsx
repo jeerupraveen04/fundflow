@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { DonationForm } from '@/components/donation-form';
 
 type CampaignPageProps = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
 export async function generateStaticParams() {
@@ -22,8 +22,9 @@ const getCampaign = (id: string): Campaign | undefined => {
   return campaigns.find((campaign) => campaign.id === id);
 };
 
-export default function CampaignPage({ params }: CampaignPageProps) {
-  const campaign = getCampaign(params.id);
+export default async function CampaignPage({ params }: CampaignPageProps) {
+  const { id } = await params;
+  const campaign = getCampaign(id);
 
   if (!campaign) {
     notFound();
