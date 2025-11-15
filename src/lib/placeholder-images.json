@@ -1,0 +1,100 @@
+{
+  "placeholderImages": [
+    {
+      "id": "campaign-community-garden",
+      "description": "Volunteers working in a sunny community garden.",
+      "imageUrl": "https://images.unsplash.com/photo-1611843467160-25afb8df1074?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxjb21tdW5pdHklMjBnYXJkZW58ZW58MHx8fHwxNzYzMTg0ODcxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "community garden"
+    },
+    {
+      "id": "campaign-art-mural",
+      "description": "A colorful street art mural being painted on a brick wall.",
+      "imageUrl": "https://images.unsplash.com/photo-1583225214464-9296029427aa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxzdHJlZXQlMjBhcnR8ZW58MHx8fHwxNzYzMTQwNTg2fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "street art"
+    },
+    {
+      "id": "campaign-animal-shelter",
+      "description": "A person petting a happy dog in an animal shelter.",
+      "imageUrl": "https://images.unsplash.com/photo-1625107012478-2fb7eceb7577?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxhbmltYWwlMjBzaGVsdGVyfGVufDB8fHx8MTc2MzE1MDkxOXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "animal shelter"
+    },
+    {
+      "id": "campaign-tech-startup",
+      "description": "A group of diverse people collaborating around a laptop in a modern office.",
+      "imageUrl": "https://images.unsplash.com/photo-1531482615713-2afd69097998?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHx0ZWNoJTIwc3RhcnR1cHxlbnwwfHx8fDE3NjMxOTU1ODV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "tech startup"
+    },
+    {
+      "id": "campaign-short-film",
+      "description": "A vintage film camera on a tripod, ready for shooting.",
+      "imageUrl": "https://images.unsplash.com/photo-1516961642265-531546e84af2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxmaWxtJTIwY2FtZXJhfGVufDB8fHx8MTc2MzExMDUxOXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "film camera"
+    },
+    {
+      "id": "campaign-kids-coding",
+      "description": "Children learning to code on laptops in a classroom.",
+      "imageUrl": "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxraWRzJTIwY29kaW5nfGVufDB8fHx8MTc2MzE5NTU4NXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "kids coding"
+    },
+    {
+      "id": "campaign-disaster-relief",
+      "description": "Aid workers distributing supplies after a natural disaster.",
+      "imageUrl": "https://images.unsplash.com/photo-1640296150617-1ede154483d9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxkaXNhc3RlciUyMHJlbGllZnxlbnwwfHx8fDE3NjMxMjk4NTB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "disaster relief"
+    },
+    {
+      "id": "campaign-music-album",
+      "description": "A musician playing a guitar in a recording studio.",
+      "imageUrl": "https://images.unsplash.com/photo-1627407660893-fe01f60d44c4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxtdXNpYyUyMHN0dWRpb3xlbnwwfHx8fDE3NjMxODgxMjh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "music studio"
+    },
+    {
+      "id": "avatar-1",
+      "description": "Avatar image",
+      "imageUrl": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxwZXJzb24lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NjMxNDEzMjJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person portrait"
+    },
+    {
+      "id": "avatar-2",
+      "description": "Avatar image",
+      "imageUrl": "https://images.unsplash.com/photo-1710974481447-fb001ad9ad5a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxwZXJzb24lMjBmYWNlfGVufDB8fHx8MTc2MzA5NDY2N3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person face"
+    },
+    {
+      "id": "avatar-3",
+      "description": "Avatar image",
+      "imageUrl": "https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHx3b21hbiUyMHNtaWxpbmd8ZW58MHx8fHwxNzYzMTc1NDAwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman smiling"
+    },
+    {
+      "id": "avatar-4",
+      "description": "Avatar image",
+      "imageUrl": "https://images.unsplash.com/photo-1714356590155-f896e15d21c9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8bWFuJTIwZ2xhc3Nlc3xlbnwwfHx8fDE3NjMxNTc3NDB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "man glasses"
+    },
+    {
+      "id": "avatar-5",
+      "description": "Avatar image",
+      "imageUrl": "https://images.unsplash.com/photo-1654110455429-cf322b40a906?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxwcm9maWxlJTIwcGljdHVyZXxlbnwwfHx8fDE3NjMxODkzMDF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "profile picture"
+    },
+    {
+      "id": "avatar-6",
+      "description": "Avatar image",
+      "imageUrl": "https://images.unsplash.com/photo-1525186402429-b4ff38bedec6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxwZXJzb24lMjBoYXBweXxlbnwwfHx8fDE3NjMxMzk1NDV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person happy"
+    },
+    {
+      "id": "avatar-7",
+      "description": "Avatar image",
+      "imageUrl": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8d29tYW4lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NjMxMDIyNjJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman portrait"
+    },
+    {
+      "id": "avatar-8",
+      "description": "Avatar image",
+      "imageUrl": "https://images.unsplash.com/photo-1623184663110-89ba5b565eb6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxtYW4lMjBzbWlsaW5nfGVufDB8fHx8MTc2MzE1OTMzNXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "man smiling"
+    }
+  ]
+}
