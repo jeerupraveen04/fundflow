@@ -15,23 +15,44 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const handleLogin = () => {
-    let role = '';
-    if (email === 'user@example.com' && password === 'password') {
-      role = 'user';
-    } else if (email === 'admin@example.com' && password === 'password') {
-      role = 'admin';
-    } else if (email === 'superadmin@example.com' && password === 'password') {
-      role = 'superadmin';
-    }
+  const handleLogin = async () => {
+    try {
+      const res = await fetch("http://localhost:3000/auth/signin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (role) {
-      router.push(`/dashboard?role=${role}`);
-    } else {
+      const data = await res.json();
+      console.log("Login response:", data);
+
+      if (!res.ok) {
+        return toast({
+          variant: "destructive",
+          title: "Login Failed",
+          description: data.message || "Invalid credentials.",
+        });
+      }
+
+      // Save access token for authenticated routes
+      localStorage.setItem("access_token", data.token);
+
       toast({
-        variant: 'destructive',
-        title: 'Invalid Credentials',
-        description: 'Please check your email and password.',
+        title: "Login Successful 🎉",
+        description: "Redirecting to dashboard...",
+      });
+
+      // Redirect logic based on role if returned from backend
+      const role = data?.user?.role || "user";
+
+      router.push(`/dashboard?role=${role}`);
+
+    } catch (error) {
+      console.error("Login error:", error);
+      toast({
+        variant: "destructive",
+        title: "Network Error",
+        description: "Unable to connect to server.",
       });
     }
   };
@@ -45,20 +66,34 @@ export default function LoginPage() {
       <CardContent className="grid gap-4">
         <div className="grid gap-2">
           <Label htmlFor="email">Email</Label>
-          <Input id="email" type="email" placeholder="m@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} />
+          <Input
+            id="email"
+            type="email"
+            placeholder="m@example.com"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
         </div>
+
         <div className="grid gap-2">
           <Label htmlFor="password">Password</Label>
-          <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+          <Input
+            id="password"
+            type="password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
         </div>
       </CardContent>
+
       <CardFooter className="flex flex-col gap-4">
         <Button className="w-full" onClick={handleLogin}>Log In</Button>
+
         <div className="text-center text-sm">
           Don&apos;t have an account?{' '}
-          <Link href="/signup" className="underline">
-            Sign up
-          </Link>
+          <Link href="/signup" className="underline">Sign up</Link>
         </div>
       </CardFooter>
     </Card>

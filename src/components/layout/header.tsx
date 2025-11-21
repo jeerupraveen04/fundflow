@@ -30,9 +30,6 @@ export function Header() {
         </Link>
 
         <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
-          <Link href="/" className="text-muted-foreground hover:text-foreground transition-colors">
-            Browse
-          </Link>
           <Link href="/create" className="text-muted-foreground hover:text-foreground transition-colors">
             Start a Campaign
           </Link>
